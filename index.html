@@ -779,6 +779,19 @@
             Включены материалы и работы. Без инженерных систем.
           </div>
 
+          <!-- CTA: участок -->
+          <div class="cta-block" style="margin-bottom:10px;">
+            <div class="cta-question">Есть ли у вас земельный участок?</div>
+            <div class="timeline-opts">
+              <button class="timeline-btn" :class="{selected: hasLand==='yes'}" @click="hasLand='yes'">
+                ✅ Да, есть участок
+              </button>
+              <button class="timeline-btn" :class="{selected: hasLand==='no'}" @click="hasLand='no'">
+                🔍 Ещё ищу
+              </button>
+            </div>
+          </div>
+
           <!-- CTA: сроки -->
           <div class="cta-block">
             <div class="cta-question">Когда планируете начать строительство?</div>
@@ -879,6 +892,7 @@ document.addEventListener('alpine:init', () => {
     finishing:    '',
 
     // CTA
+    hasLand:  '',
     timeline: '',
     name:     '',
     phone:    '',
@@ -957,7 +971,7 @@ document.addEventListener('alpine:init', () => {
       Object.assign(this, {
         area:100, floors:'', foundation:'', walls:'',
         roofType:'', roofMaterial:'', finishing:'',
-        timeline:'', name:'', phone:''
+        hasLand:'', timeline:'', name:'', phone:''
       });
     },
 
@@ -965,8 +979,8 @@ document.addEventListener('alpine:init', () => {
       // TODO: заменить на fetch() к Google Apps Script
       console.log('Заявка:', { area:this.area, floors:this.floors, foundation:this.foundation,
         walls:this.walls, roofType:this.roofType, roofMaterial:this.roofMaterial,
-        finishing:this.finishing, total:this.total, timeline:this.timeline,
-        name:this.name, phone:this.phone });
+        finishing:this.finishing, total:this.total, hasLand:this.hasLand,
+        timeline:this.timeline, name:this.name, phone:this.phone });
       this.step = 6;
     }
   }));
