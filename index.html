@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Калькулятор стоимости дома — Новомосковья</title>
+
+  <!-- Roboto — шрифт сайта novomoscovia.ru -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <!-- Alpine.js — реактивность без лишнего кода -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+
+  <style>
+    /* ─── Сброс и базовые настройки ───────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      background: #f7f7f7;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    /* ─── Обёртка калькулятора ─────────────────────────────── */
+    .calc-wrap {
+      width: 100%;
+      max-width: 580px;
+    }
+
+    /* Заголовок над карточкой */
+    .calc-heading {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .calc-heading h1 {
+      font-size: 26px;
+      font-weight: 900;
+      color: #1d1d1d;
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+    .calc-heading p {
+      font-size: 14px;
+      color: #7d7d7d;
+    }
+
+    /* ─── Белая карточка ───────────────────────────────────── */
+    .calc-card {
+      background: #fff;
+      border-radius: 30px;
+      box-shadow: 0 6px 32px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    /* ─── Зелёная полоса прогресса ─────────────────────────── */
+    .progress-track {
+      height: 5px;
+      background: #e8e8e8;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0ba552, #41af3c);
+      border-radius: 0 3px 3px 0;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ─── Шапка шага ───────────────────────────────────────── */
+    .calc-top {
+      padding: 28px 30px 0;
+    }
+    .step-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .step-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #0ba552;
+      background: #e8f7ef;
+      padding: 4px 12px;
+      border-radius: 30px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .step-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1d1d1d;
+    }
+
+    /* ─── Тело ──────────────────────────────────────────────── */
+    .calc-body {
+      padding: 22px 30px 30px;
+    }
+
+    /* ─── Метка поля ────────────────────────────────────────── */
+    .field-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #9f9f9f;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 12px;
+    }
+
+    /* ─── Блок площади ──────────────────────────────────────── */
+    .area-display {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .area-value {
+      font-size: 52px;
+      font-weight: 900;
+      color: #0ba552;
+      line-height: 1;
+    }
+    .area-unit {
+      font-size: 22px;
+      font-weight: 700;
+      color: #9dc7b1;
+    }
+
+    /* Слайдер в фирменном зелёном */
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #e8e8e8;
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 26px;
+      height: 26px;
+      background: #0ba552;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 3px 10px rgba(11,165,82,0.40);
+      transition: transform 0.1s;
+    }
+    input[type="range"]::-webkit-slider-thumb:active { transform: scale(1.18); }
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #c9c9c9;
+      margin-top: 7px;
+    }
+
+    /* ─── Разделитель ───────────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: #f2f2f2;
+      margin: 22px 0;
+    }
+
+    /* ─── Карточки выбора ───────────────────────────────────── */
+    .cards-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .cards-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .option-card {
+      border: 2px solid #e8e8e8;
+      border-radius: 20px;
+      padding: 16px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.12s, box-shadow 0.15s;
+      user-select: none;
+      background: #fff;
+    }
+    .option-card:hover {
+      border-color: #9dc7b1;
+      background: #f4fbf7;
+    }
+    .option-card.selected {
+      border-color: #0ba552;
+      background: #f0faf5;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(11,165,82,0.14);
+    }
+    .card-icon {
+      font-size: 28px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .card-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #474747;
+      line-height: 1.35;
+    }
+    .option-card.selected .card-name { color: #0ba552; }
+    .card-hint {
+      font-size: 11px;
+      color: #c9c9c9;
+      margin-top: 3px;
+      line-height: 1.3;
+    }
+
+    /* ─── Навигация ─────────────────────────────────────────── */
+    .nav-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+    .btn-back {
+      padding: 15px 20px;
+      background: #f7f7f7;
+      color: #7d7d7d;
+      border: none;
+      border-radius: 20px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Roboto', Arial, sans-serif;
+      transition: background 0.15s;
+    }
+    .btn-back:hover { background: #e8e8e8; }
+
+    .btn-next {
+      flex: 1;
+      padding: 15px;
+      background: #0ba552;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Roboto', Arial, sans-serif;
+      transition: background 0.15s, transform 0.1s;
+      letter-spacing: 0.01em;
+    }
+    .btn-next:hover:not(:disabled) {
+      background: #2e8a2b;
+      transform: translateY(-1px);
+    }
+    .btn-next:disabled {
+      background: #d1d1d1;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ─── Экран результата ──────────────────────────────────── */
+    .result-hero {
+      background: linear-gradient(135deg, #0ba552 0%, #38ad63 100%);
+      border-radius: 20px;
+      padding: 24px 20px;
+      text-align: center;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+    .result-hero-label {
+      font-size: 12px;
+      font-weight: 700;
+      opacity: 0.75;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 8px;
+    }
+    .result-hero-range {
+      font-size: 30px;
+      font-weight: 900;
+      line-height: 1.15;
+    }
+    .result-hero-persqm {
+      font-size: 14px;
+      opacity: 0.8;
+      margin-top: 6px;
+    }
+
+    /* Разбивка */
+    .result-breakdown {
+      background: #f7f7f7;
+      border-radius: 20px;
+      padding: 4px 16px;
+      margin-bottom: 16px;
+    }
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #efefef;
+      font-size: 14px;
+    }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-name { color: #7d7d7d; font-weight: 500; }
+    .breakdown-val { color: #1d1d1d; font-weight: 700; }
+
+    .result-disclaimer {
+      font-size: 12px;
+      color: #c9c9c9;
+      text-align: center;
+      line-height: 1.6;
+      margin-bottom: 4px;
+    }
+
+    /* ─── Блок CTA ──────────────────────────────────────────── */
+    .cta-block {
+      background: #f0faf5;
+      border: 1.5px solid #9dc7b1;
+      border-radius: 20px;
+      padding: 18px;
+      margin: 16px 0;
+    }
+    .cta-question {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1d1d1d;
+      margin-bottom: 12px;
+    }
+    .timeline-opts {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .timeline-btn {
+      padding: 10px 8px;
+      border: 2px solid #9dc7b1;
+      border-radius: 14px;
+      background: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      color: #474747;
+      cursor: pointer;
+      font-family: 'Roboto', Arial, sans-serif;
+      transition: all 0.15s;
+      text-align: center;
+      line-height: 1.3;
+    }
+    .timeline-btn:hover { border-color: #0ba552; color: #0ba552; }
+    .timeline-btn.selected {
+      background: #0ba552;
+      border-color: #0ba552;
+      color: #fff;
+    }
+
+    /* Форма заявки */
+    .cta-form { margin-top: 14px; }
+    .cta-form input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e8e8e8;
+      border-radius: 14px;
+      font-size: 15px;
+      font-family: 'Roboto', Arial, sans-serif;
+      color: #1d1d1d;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s;
+      margin-bottom: 10px;
+    }
+    .cta-form input:focus { border-color: #0ba552; }
+    .cta-form input::placeholder { color: #c9c9c9; }
+
+    .btn-submit {
+      width: 100%;
+      padding: 16px;
+      background: #0ba552;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Roboto', Arial, sans-serif;
+      letter-spacing: 0.01em;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-submit:hover:not(:disabled) { background: #2e8a2b; transform: translateY(-1px); }
+    .btn-submit:disabled { background: #d1d1d1; cursor: not-allowed; }
+
+    /* Telegram CTA */
+    .btn-telegram {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 15px;
+      background: #fff;
+      color: #474747;
+      border: 2px solid #e8e8e8;
+      border-radius: 20px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Roboto', Arial, sans-serif;
+      margin-top: 10px;
+      text-decoration: none;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-telegram:hover { border-color: #0ba552; color: #0ba552; }
+    .tg-icon {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+
+    /* Дисклеймер о согласии */
+    .consent-text {
+      font-size: 11px;
+      color: #c9c9c9;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+    .consent-text a { color: #0ba552; text-decoration: none; }
+
+    /* ─── Экран успеха ──────────────────────────────────────── */
+    .success-screen {
+      text-align: center;
+      padding: 16px 0 8px;
+    }
+    .success-icon-wrap {
+      width: 72px;
+      height: 72px;
+      background: #f0faf5;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .success-icon-wrap svg {
+      width: 36px;
+      height: 36px;
+      fill: #0ba552;
+    }
+    .success-title {
+      font-size: 22px;
+      font-weight: 900;
+      color: #1d1d1d;
+      margin-bottom: 10px;
+    }
+    .success-text {
+      font-size: 14px;
+      color: #7d7d7d;
+      line-height: 1.7;
+    }
+    .btn-restart {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 13px 28px;
+      background: #f7f7f7;
+      border: none;
+      border-radius: 20px;
+      color: #7d7d7d;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Roboto', Arial, sans-serif;
+    }
+    .btn-restart:hover { background: #e8e8e8; }
+
+    /* Ссылка «пересчитать» */
+    .recalc-link {
+      display: block;
+      text-align: center;
+      margin-top: 14px;
+      background: none;
+      border: none;
+      color: #c9c9c9;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: 'Roboto', Arial, sans-serif;
+      text-decoration: underline;
+    }
+    .recalc-link:hover { color: #7d7d7d; }
+
+    /* ─── Мобильная адаптация ───────────────────────────────── */
+    @media (max-width: 440px) {
+      body { padding: 16px 12px; }
+      .calc-top { padding: 22px 20px 0; }
+      .calc-body { padding: 18px 20px 24px; }
+      .calc-heading h1 { font-size: 20px; }
+      .area-value { font-size: 42px; }
+      .cards-grid-3 { gap: 7px; }
+      .card-icon { font-size: 24px; }
+      .card-name { font-size: 11px; }
+      .card-hint { display: none; }
+      .result-hero-range { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="calc-wrap">
+
+  <!-- Заголовок над карточкой -->
+  <div class="calc-heading">
+    <h1>Рассчитайте стоимость<br>вашего дома</h1>
+    <p>Результат — мгновенно. Точная смета — после консультации.</p>
+  </div>
+
+  <!-- Основная карточка -->
+  <div class="calc-card" x-data="calc">
+
+    <!-- Прогресс-бар -->
+    <div class="progress-track">
+      <div class="progress-fill" :style="`width: ${progressPct}%`"></div>
+    </div>
+
+    <!-- Шапка: бейдж + заголовок -->
+    <div class="calc-top">
+      <div class="step-row">
+        <span class="step-badge" x-text="stepBadge"></span>
+      </div>
+      <div class="step-title" x-text="stepTitle"></div>
+    </div>
+
+    <div class="calc-body">
+
+      <!-- ══════════════════════════════════════
+           ШАГ 1: Площадь + Этажность
+      ══════════════════════════════════════ -->
+      <template x-if="step === 1">
+        <div>
+          <div class="field-label">Площадь дома</div>
+          <div class="area-display">
+            <span class="area-value" x-text="area"></span>
+            <span class="area-unit">м²</span>
+          </div>
+          <input type="range" min="50" max="400" step="10" x-model="area">
+          <div class="range-labels">
+            <span>50 м²</span>
+            <span>400 м²</span>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="field-label">Этажность</div>
+          <div class="cards-grid-3">
+            <div class="option-card" :class="{selected: floors==='1'}" @click="floors='1'">
+              <div class="card-icon">🏠</div>
+              <div class="card-name">1 этаж</div>
+              <div class="card-hint">одноэтажный</div>
+            </div>
+            <div class="option-card" :class="{selected: floors==='1m'}" @click="floors='1m'">
+              <div class="card-icon">🏡</div>
+              <div class="card-name">Этаж + мансарда</div>
+              <div class="card-hint">жилая мансарда</div>
+            </div>
+            <div class="option-card" :class="{selected: floors==='2'}" @click="floors='2'">
+              <div class="card-icon">🏘️</div>
+              <div class="card-name">2 этажа</div>
+              <div class="card-hint">полноценный</div>
+            </div>
+          </div>
+
+          <button class="btn-next" :disabled="!floors" @click="step=2">
+            Далее: тип фундамента →
+          </button>
+        </div>
+      </template>
+
+      <!-- ══════════════════════════════════════
+           ШАГ 2: Фундамент
+      ══════════════════════════════════════ -->
+      <template x-if="step === 2">
+        <div>
+          <div class="field-label">Тип фундамента</div>
+          <div class="cards-grid-2">
+            <div class="option-card" :class="{selected: foundation==='tape'}" @click="foundation='tape'">
+              <div class="card-icon">▬</div>
+              <div class="card-name">Ленточный</div>
+              <div class="card-hint">подходит для большинства грунтов</div>
+            </div>
+            <div class="option-card" :class="{selected: foundation==='slab'}" @click="foundation='slab'">
+              <div class="card-icon">⬛</div>
+              <div class="card-name">Монолитная плита</div>
+              <div class="card-hint">надёжно на любом грунте</div>
+            </div>
+            <div class="option-card" :class="{selected: foundation==='pile'}" @click="foundation='pile'">
+              <div class="card-icon">🔩</div>
+              <div class="card-name">Свайно-ростверковый</div>
+              <div class="card-hint">сложный рельеф, слабый грунт</div>
+            </div>
+            <div class="option-card" :class="{selected: foundation==='screw'}" @click="foundation='screw'">
+              <div class="card-icon">🪛</div>
+              <div class="card-name">Винтовые сваи</div>
+              <div class="card-hint">быстрый монтаж, каркасные дома</div>
+            </div>
+          </div>
+
+          <div class="nav-row">
+            <button class="btn-back" @click="step=1">← Назад</button>
+            <button class="btn-next" :disabled="!foundation" @click="step=3">
+              Далее: материал стен →
+            </button>
+          </div>
+        </div>
+      </template>
+
+      <!-- ══════════════════════════════════════
+           ШАГ 3: Стены + Кровля
+      ══════════════════════════════════════ -->
+      <template x-if="step === 3">
+        <div>
+          <div class="field-label">Материал стен</div>
+          <div class="cards-grid-3">
+            <div class="option-card" :class="{selected: walls==='aerated'}" @click="walls='aerated'">
+              <div class="card-icon">🟦</div>
+              <div class="card-name">Газобетон</div>
+              <div class="card-hint">тепло, доступно</div>
+            </div>
+            <div class="option-card" :class="{selected: walls==='brick'}" @click="walls='brick'">
+              <div class="card-icon">🧱</div>
+              <div class="card-name">Кирпич</div>
+              <div class="card-hint">прочно, долговечно</div>
+            </div>
+            <div class="option-card" :class="{selected: walls==='frame'}" @click="walls='frame'">
+              <div class="card-icon">🪵</div>
+              <div class="card-name">Каркас</div>
+              <div class="card-hint">быстро, экономично</div>
+            </div>
+            <div class="option-card" :class="{selected: walls==='timber'}" @click="walls='timber'">
+              <div class="card-icon">🌲</div>
+              <div class="card-name">Брус</div>
+              <div class="card-hint">экология, эстетика</div>
+            </div>
+            <div class="option-card" :class="{selected: walls==='sip'}" @click="walls='sip'">
+              <div class="card-icon">📦</div>
+              <div class="card-name">СИП-панели</div>
+              <div class="card-hint">быстрый монтаж</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="field-label">Тип кровли</div>
+          <div class="cards-grid-2">
+            <div class="option-card" :class="{selected: roofType==='gable'}" @click="roofType='gable'">
+              <div class="card-icon">🔺</div>
+              <div class="card-name">Двускатная</div>
+              <div class="card-hint">классика, надёжно</div>
+            </div>
+            <div class="option-card" :class="{selected: roofType==='hip'}" @click="roofType='hip'">
+              <div class="card-icon">⬟</div>
+              <div class="card-name">Вальмовая</div>
+              <div class="card-hint">без фронтонов</div>
+            </div>
+            <div class="option-card" :class="{selected: roofType==='flat'}" @click="roofType='flat'">
+              <div class="card-icon">➖</div>
+              <div class="card-name">Плоская</div>
+              <div class="card-hint">современный стиль</div>
+            </div>
+            <div class="option-card" :class="{selected: roofType==='mansard'}" @click="roofType='mansard'">
+              <div class="card-icon">🏰</div>
+              <div class="card-name">Мансардная</div>
+              <div class="card-hint">жилое пространство</div>
+            </div>
+          </div>
+
+          <div class="nav-row">
+            <button class="btn-back" @click="step=2">← Назад</button>
+            <button class="btn-next" :disabled="!walls || !roofType" @click="step=4">
+              Далее: кровельный материал →
+            </button>
+          </div>
+        </div>
+      </template>
+
+      <!-- ══════════════════════════════════════
+           ШАГ 4: Кровельный материал + Отделка
+      ══════════════════════════════════════ -->
+      <template x-if="step === 4">
+        <div>
+          <div class="field-label">Кровельный материал</div>
+          <div class="cards-grid-2">
+            <div class="option-card" :class="{selected: roofMaterial==='metalTile'}" @click="roofMaterial='metalTile'">
+              <div class="card-icon">🔷</div>
+              <div class="card-name">Металлочерепица</div>
+              <div class="card-hint">популярно, доступно</div>
+            </div>
+            <div class="option-card" :class="{selected: roofMaterial==='corrugated'}" @click="roofMaterial='corrugated'">
+              <div class="card-icon">〰️</div>
+              <div class="card-name">Профнастил</div>
+              <div class="card-hint">бюджетный вариант</div>
+            </div>
+            <div class="option-card" :class="{selected: roofMaterial==='soft'}" @click="roofMaterial='soft'">
+              <div class="card-icon">🟫</div>
+              <div class="card-name">Мягкая кровля</div>
+              <div class="card-hint">тихо, без конденсата</div>
+            </div>
+            <div class="option-card" :class="{selected: roofMaterial==='ceramic'}" @click="roofMaterial='ceramic'">
+              <div class="card-icon">🏺</div>
+              <div class="card-name">Керамическая черепица</div>
+              <div class="card-hint">премиум, долговечно</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="field-label">Уровень отделки</div>
+          <div class="cards-grid-3">
+            <div class="option-card" :class="{selected: finishing==='box'}" @click="finishing='box'">
+              <div class="card-icon">🏗️</div>
+              <div class="card-name">Коробка</div>
+              <div class="card-hint">без отделки</div>
+            </div>
+            <div class="option-card" :class="{selected: finishing==='rough'}" @click="finishing='rough'">
+              <div class="card-icon">🖌️</div>
+              <div class="card-name">Черновая</div>
+              <div class="card-hint">под чистовую</div>
+            </div>
+            <div class="option-card" :class="{selected: finishing==='turnkey'}" @click="finishing='turnkey'">
+              <div class="card-icon">🔑</div>
+              <div class="card-name">Под ключ</div>
+              <div class="card-hint">заезжай и живи</div>
+            </div>
+          </div>
+
+          <div class="nav-row">
+            <button class="btn-back" @click="step=3">← Назад</button>
+            <button class="btn-next" :disabled="!roofMaterial || !finishing" @click="step=5">
+              Рассчитать стоимость →
+            </button>
+          </div>
+        </div>
+      </template>
+
+      <!-- ══════════════════════════════════════
+           ШАГ 5: Результат
+      ══════════════════════════════════════ -->
+      <template x-if="step === 5">
+        <div>
+          <!-- Зелёный блок с итогом -->
+          <div class="result-hero">
+            <div class="result-hero-label">Ориентировочная стоимость</div>
+            <div class="result-hero-range">
+              от <span x-text="fmt(totalMin)"></span> ₽<br>
+              до <span x-text="fmt(totalMax)"></span> ₽
+            </div>
+            <div class="result-hero-persqm" x-text="`${fmt(Math.round(total / area))} ₽ за м²`"></div>
+          </div>
+
+          <!-- Разбивка -->
+          <div class="result-breakdown">
+            <div class="breakdown-row">
+              <span class="breakdown-name">Фундамент</span>
+              <span class="breakdown-val" x-text="fmt(costs.foundation) + ' ₽'"></span>
+            </div>
+            <div class="breakdown-row">
+              <span class="breakdown-name">Стены</span>
+              <span class="breakdown-val" x-text="fmt(costs.walls) + ' ₽'"></span>
+            </div>
+            <div class="breakdown-row">
+              <span class="breakdown-name">Кровля</span>
+              <span class="breakdown-val" x-text="fmt(costs.roof) + ' ₽'"></span>
+            </div>
+            <div class="breakdown-row">
+              <span class="breakdown-name">Отделка</span>
+              <span class="breakdown-val" x-text="fmt(costs.finishing) + ' ₽'"></span>
+            </div>
+          </div>
+
+          <div class="result-disclaimer">
+            Погрешность ±15% · Цены 2025 г. · Тульская область<br>
+            Включены материалы и работы. Без инженерных систем.
+          </div>
+
+          <!-- CTA: сроки -->
+          <div class="cta-block">
+            <div class="cta-question">Когда планируете начать строительство?</div>
+            <div class="timeline-opts">
+              <button class="timeline-btn" :class="{selected: timeline==='now'}" @click="timeline='now'">
+                В ближайшее время
+              </button>
+              <button class="timeline-btn" :class="{selected: timeline==='2m'}" @click="timeline='2m'">
+                В течение 2 месяцев
+              </button>
+              <button class="timeline-btn" :class="{selected: timeline==='6m'}" @click="timeline='6m'">
+                В течение полугода
+              </button>
+              <button class="timeline-btn" :class="{selected: timeline==='later'}" @click="timeline='later'">
+                Пока изучаю
+              </button>
+            </div>
+          </div>
+
+          <!-- Форма для тех, кто готов -->
+          <template x-if="timeline && timeline !== 'later'">
+            <div class="cta-form">
+              <input type="text" placeholder="Ваше имя" x-model="name">
+              <input type="tel" placeholder="+7 (___) ___-__-__" x-model="phone">
+              <p class="consent-text">
+                Нажимая кнопку, вы соглашаетесь с
+                <a href="#">политикой обработки персональных данных</a>
+              </p>
+              <button class="btn-submit" :disabled="!name || !phone" @click="submitLead()">
+                Получить точную смету →
+              </button>
+            </div>
+          </template>
+
+          <!-- Telegram для тех, кто пока изучает -->
+          <template x-if="timeline === 'later'">
+            <div style="margin-top:12px;">
+              <p style="text-align:center;font-size:13px;color:#7d7d7d;margin-bottom:10px;line-height:1.6;">
+                Подпишитесь на Telegram-канал — следите за нашими проектами,<br>ценами и акциями
+              </p>
+              <a href="https://t.me/" class="btn-telegram" target="_blank">
+                <svg class="tg-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.04 9.613c-.148.658-.537.818-1.084.508l-3-2.21-1.45 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.053-.332-.373-.118l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.906.606z"/>
+                </svg>
+                Перейти в Telegram-канал
+              </a>
+            </div>
+          </template>
+
+          <button class="recalc-link" @click="step=1;reset()">← Пересчитать</button>
+        </div>
+      </template>
+
+      <!-- ══════════════════════════════════════
+           ШАГ 6: Спасибо
+      ══════════════════════════════════════ -->
+      <template x-if="step === 6">
+        <div class="success-screen">
+          <div class="success-icon-wrap">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+            </svg>
+          </div>
+          <div class="success-title">Заявка принята!</div>
+          <div class="success-text">
+            Менеджер свяжется с вами в течение 2 часов.<br>
+            Подготовим детальную смету для вашего проекта.
+          </div>
+          <button class="btn-restart" @click="step=1;reset()">← Новый расчёт</button>
+        </div>
+      </template>
+
+    </div><!-- /.calc-body -->
+  </div><!-- /.calc-card -->
+
+  <!-- Подпись под карточкой -->
+  <p style="text-align:center;font-size:12px;color:#c9c9c9;margin-top:16px;line-height:1.6;">
+    Новомосковья · Строительство домов под ключ<br>
+    Тульская область
+  </p>
+
+</div><!-- /.calc-wrap -->
+
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('calc', () => ({
+
+    step: 1,
+
+    // Параметры дома
+    area:         100,
+    floors:       '',
+    foundation:   '',
+    walls:        '',
+    roofType:     '',
+    roofMaterial: '',
+    finishing:    '',
+
+    // CTA
+    timeline: '',
+    name:     '',
+    phone:    '',
+
+    // ─────────────────────────────────────────────────
+    // ЦЕНОВАЯ БАЗА
+    // ⚠️ Замените на реальные цены компании перед запуском
+    // ─────────────────────────────────────────────────
+    prices: {
+      foundation: {
+        tape:  7500,   // лента
+        slab:  11000,  // монолитная плита
+        pile:  6000,   // свайно-ростверковый
+        screw: 4500    // винтовые сваи
+      },
+      walls: {
+        aerated: 14000, // газобетон
+        brick:   21000, // кирпич
+        frame:   11000, // каркас
+        timber:  13000, // брус
+        sip:     10000  // СИП-панели
+      },
+      roofMaterial: {
+        metalTile:  2200, // металлочерепица
+        corrugated: 1600, // профнастил
+        soft:       2000, // мягкая кровля
+        ceramic:    4200  // керамическая черепица
+      },
+      floorsK: {
+        '1': 1.00, '1m': 1.35, '2': 1.60
+      },
+      roofTypeK: {
+        gable: 1.00, hip: 1.18, flat: 0.70, mansard: 1.30
+      },
+      finishingK: {
+        box: 1.00, rough: 1.30, turnkey: 1.70
+      }
+    },
+
+    // Расчёт стоимости
+    get costs() {
+      const p   = this.prices;
+      const a   = Number(this.area);
+      const fK  = p.floorsK[this.floors]       || 1;
+      const rtK = p.roofTypeK[this.roofType]   || 1;
+      const fnK = p.finishingK[this.finishing] || 1;
+
+      const foundation = a * (p.foundation[this.foundation] || 0);
+      const walls      = a * (p.walls[this.walls] || 0) * fK;
+      const roof       = a * 1.3 * rtK * (p.roofMaterial[this.roofMaterial] || 0);
+      const base       = foundation + walls + roof;
+      const finishing  = base * (fnK - 1);
+
+      return {
+        foundation: Math.round(foundation),
+        walls:      Math.round(walls),
+        roof:       Math.round(roof),
+        finishing:  Math.round(finishing)
+      };
+    },
+
+    get total()    { const c = this.costs; return c.foundation + c.walls + c.roof + c.finishing; },
+    get totalMin() { return Math.round(this.total * 0.87); },
+    get totalMax() { return Math.round(this.total * 1.15); },
+
+    get progressPct() { return { 1:25, 2:50, 3:75, 4:95, 5:100, 6:100 }[this.step] || 0; },
+    get stepBadge()   { return this.step <= 4 ? `Шаг ${this.step} из 4` : this.step === 5 ? 'Ваш результат' : ''; },
+    get stepTitle()   {
+      return ['', 'Параметры дома', 'Тип фундамента', 'Стены и кровля',
+              'Материал кровли и отделка', 'Стоимость строительства', 'Спасибо!'][this.step] || '';
+    },
+
+    fmt(n) { return n.toLocaleString('ru-RU'); },
+
+    reset() {
+      Object.assign(this, {
+        area:100, floors:'', foundation:'', walls:'',
+        roofType:'', roofMaterial:'', finishing:'',
+        timeline:'', name:'', phone:''
+      });
+    },
+
+    submitLead() {
+      // TODO: заменить на fetch() к Google Apps Script
+      console.log('Заявка:', { area:this.area, floors:this.floors, foundation:this.foundation,
+        walls:this.walls, roofType:this.roofType, roofMaterial:this.roofMaterial,
+        finishing:this.finishing, total:this.total, timeline:this.timeline,
+        name:this.name, phone:this.phone });
+      this.step = 6;
+    }
+  }));
+});
+</script>
+
+</body>
+</html>
